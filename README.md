@@ -1,7 +1,7 @@
 # scala-weather
 
 Scala program for RaspberryPI showing current weather.
-It uses akka for main functionalities.
+It uses akka-http and akka-streams for main functionalities.
 
 Required configuration:
 
