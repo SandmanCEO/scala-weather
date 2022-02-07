@@ -36,10 +36,10 @@ object ApiResponses {
   )
 
   final case class AstronomyData(
-      sunrise: LocalTime,
-      sunset: LocalTime,
-      moonrise: LocalTime,
-      moonSet: LocalTime
+      sunrise: Either[String, LocalTime],
+      sunset: Either[String, LocalTime],
+      moonrise: Either[String, LocalTime],
+      moonSet: Either[String, LocalTime]
   )
 
   final case class AstronomyResponse(

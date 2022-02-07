@@ -35,10 +35,18 @@ class AstronomyPanel {
       sunIconData: Array[Byte],
       moonIconData: Array[Byte]
   ): Unit = {
-    sunriseLabel.text = s"Sunrise: ${astronomy.astronomy.sunrise}"
-    sunsetLabel.text = s"Sunset: ${astronomy.astronomy.sunset}"
-    moonriseLabel.text = s"Moonrise: ${astronomy.astronomy.moonrise}"
-    moonSetLabel.text = s"Moon set: ${astronomy.astronomy.moonSet}"
+    val sunriseHour: String =
+      astronomy.astronomy.sunrise.fold(s => s, d => d.toString)
+    val sunsetHour: String =
+      astronomy.astronomy.sunset.fold(s => s, d => d.toString)
+    val moonriseHour: String =
+      astronomy.astronomy.moonrise.fold(s => s, d => d.toString)
+    val moonSetHour: String =
+      astronomy.astronomy.moonSet.fold(s => s, d => d.toString)
+    sunriseLabel.text = s"Sunrise: $sunriseHour"
+    sunsetLabel.text = s"Sunset: $sunsetHour"
+    moonriseLabel.text = s"Moonrise: $moonriseHour"
+    moonSetLabel.text = s"Moon set: $moonSetHour"
     sunIcon.icon = new ImageIcon(sunIconData)
     moonIcon.icon = new ImageIcon(moonIconData)
   }

@@ -1,3 +1,5 @@
+import sbt.Keys.mainClass
+
 ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "2.13.8"
@@ -53,8 +55,10 @@ scalacOptions := Seq(
   "-Wunused:privates",
   "-Wvalue-discard"
 )
+
 lazy val root = (project in file("."))
   .settings(
     name := "scala-weather",
-    idePackagePrefix := Some("com.gkleczek")
+    idePackagePrefix := Some("com.gkleczek"),
+    mainClass in assembly := Some("com.gkleczek.Main")
   )

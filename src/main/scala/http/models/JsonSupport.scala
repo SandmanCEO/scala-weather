@@ -13,6 +13,7 @@ import spray.json.{
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDateTime, LocalTime, ZoneId}
+import scala.util.Try
 
 trait JsonSupport extends DefaultJsonProtocol {
 
@@ -32,14 +33,18 @@ trait JsonSupport extends DefaultJsonProtocol {
       }
     }
 
-  lazy implicit val localTimeFormat: RootJsonFormat[LocalTime] =
-    new RootJsonFormat[LocalTime] {
-      override def write(obj: LocalTime): JsValue = JsString(obj.toString)
+  lazy implicit val eitherLocalTimeFormat
+      : RootJsonFormat[Either[String, LocalTime]] =
+    new RootJsonFormat[Either[String, LocalTime]] {
+      override def write(obj: Either[String, LocalTime]): JsValue = JsString(
+        obj.toString
+      )
 
-      override def read(json: JsValue): LocalTime = {
+      override def read(json: JsValue): Either[String, LocalTime] = {
         val formatter = DateTimeFormatter.ofPattern("h:m a")
         json match {
-          case JsString(time) => LocalTime.parse(time, formatter)
+          case JsString(time) =>
+            Try(Right(LocalTime.parse(time, formatter))).getOrElse(Left(time))
           case other =>
             throw DeserializationException(s"Expected LocalTime but got $other")
         }
@@ -163,10 +168,10 @@ trait JsonSupport extends DefaultJsonProtocol {
       override def read(json: JsValue): AstronomyData = {
         val fields = json.asJsObject.fields("astro").asJsObject.fields
 
-        val sunrise = fields("sunrise").convertTo[LocalTime]
-        val sunset = fields("sunset").convertTo[LocalTime]
-        val moonrise = fields("moonrise").convertTo[LocalTime]
-        val moonSet = fields("moonset").convertTo[LocalTime]
+        val sunrise = fields("sunrise").convertTo[Either[String, LocalTime]]
+        val sunset = fields("sunset").convertTo[Either[String, LocalTime]]
+        val moonrise = fields("moonrise").convertTo[Either[String, LocalTime]]
+        val moonSet = fields("moonset").convertTo[Either[String, LocalTime]]
 
         AstronomyData(sunrise, sunset, moonrise, moonSet)
       }

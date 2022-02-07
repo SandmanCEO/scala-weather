@@ -77,5 +77,9 @@ class WeatherApiClient(city: String)(implicit
     Http()
       .singleRequest(request)
       .flatMap(response => Unmarshal(response.entity).to[JsValue])
+      .recoverWith { ex =>
+        logger.error(ex, "Recovering on exception for http request")
+        executeRequest(request)
+      }
   }
 }
