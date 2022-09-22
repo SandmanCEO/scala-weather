@@ -1,7 +1,6 @@
-package com.gkleczek
-package panels
+package com.gkleczek.panels
 
-import http.models.ApiResponses.AstronomyResponse
+import com.gkleczek.http.models.ApiResponses.AstronomyResponse
 
 import java.awt.Color
 import javax.swing.ImageIcon

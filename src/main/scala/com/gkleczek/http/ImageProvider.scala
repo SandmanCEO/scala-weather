@@ -1,5 +1,4 @@
-package com.gkleczek
-package http
+package com.gkleczek.http
 
 import akka.actor.ActorSystem
 import akka.event.LoggingAdapter

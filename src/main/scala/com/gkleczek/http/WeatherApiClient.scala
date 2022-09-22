@@ -1,8 +1,4 @@
-package com.gkleczek
-package http
-
-import http.models.ApiResponses.{AstronomyResponse, WeatherResponse}
-import http.models.JsonSupport
+package com.gkleczek.http
 
 import akka.actor.ActorSystem
 import akka.event.LoggingAdapter
@@ -13,6 +9,12 @@ import akka.http.scaladsl.model.{HttpRequest, Uri}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 import com.github.blemale.scaffeine.{LoadingCache, Scaffeine}
+import com.gkleczek.AppConfig
+import com.gkleczek.http.models.ApiResponses.{
+  AstronomyResponse,
+  WeatherResponse
+}
+import com.gkleczek.http.models.JsonSupport
 import spray.json.JsValue
 
 import scala.concurrent.duration._

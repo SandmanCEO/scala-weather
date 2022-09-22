@@ -1,5 +1,4 @@
-package com.gkleczek
-package panels
+package com.gkleczek.panels
 
 import java.awt.Color
 import javax.swing.border.EmptyBorder

@@ -1,12 +1,11 @@
 package com.gkleczek
-import http.{ImageProvider, WeatherApiClient}
-import panels._
-import service.WeatherService
-
 import akka.Done
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.stream.Materializer
+import com.gkleczek.http.{ImageProvider, WeatherApiClient}
+import com.gkleczek.panels._
+import com.gkleczek.service.WeatherService
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -15,7 +14,7 @@ object Main extends App {
   private implicit val ex: ExecutionContext = system.dispatcher
   private implicit val mat: Materializer = Materializer(system)
   private implicit val logger: LoggingAdapter =
-    Logging.getLogger(system, this.getClass)
+    Logging(system.eventStream, this.getClass)
 
   private val weatherProvider = new WeatherApiClient(AppConfig.City)
   private val imageProvider = new ImageProvider

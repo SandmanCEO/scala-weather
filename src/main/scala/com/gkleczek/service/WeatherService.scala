@@ -1,16 +1,20 @@
-package com.gkleczek
-package service
-
-import http.{ImageProvider, WeatherApiClient}
-import panels.{AirQualityPanel, AstronomyPanel, MainWindow, WeatherPanel}
+package com.gkleczek.service
 
 import akka.Done
 import akka.event.LoggingAdapter
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Sink, Source}
+import com.gkleczek.http.{ImageProvider, WeatherApiClient}
+import com.gkleczek.panels.{
+  AirQualityPanel,
+  AstronomyPanel,
+  MainWindow,
+  WeatherPanel
+}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.swing.GridBagPanel
 
 class WeatherService(
     weatherPanel: WeatherPanel,
@@ -23,25 +27,21 @@ class WeatherService(
   def run(mainWindow: MainWindow): Future[Done] = {
     logger.info("Starting main stream")
     Source
-      .fromIterator(() => (0 until Int.MaxValue).iterator)
+      .cycle(() => panelsWithUpdateFunctions.iterator)
       .throttle(1, 10.seconds)
-      .map(_ % 3)
-      .mapAsyncUnordered(1) {
-        case 0 =>
-          updateWeatherPanel().map(_ =>
-            mainWindow.showPanel(weatherPanel.panel)
-          )
-        case 1 =>
-          updateAstronomyPanel().map(_ =>
-            mainWindow.showPanel(astronomyPanel.panel)
-          )
-        case 2 =>
-          updateAirQualityPanel().map(_ =>
-            mainWindow.showPanel(airQualityPanel.panel)
-          )
+      .mapAsyncUnordered(1) { case (panel, updateFunc) =>
+        updateFunc().map(_ => mainWindow.showPanel(panel))
       }
       .runWith(Sink.ignore)
   }
+
+  private val panelsWithUpdateFunctions
+      : List[(GridBagPanel, () => Future[Done])] =
+    weatherPanel.panel -> (() =>
+      updateWeatherPanel()
+    ) :: astronomyPanel.panel -> (() =>
+      updateAstronomyPanel()
+    ) :: airQualityPanel.panel -> (() => updateAirQualityPanel()) :: Nil
 
   private def updateWeatherPanel(): Future[Done] =
     for {

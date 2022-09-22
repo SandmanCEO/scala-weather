@@ -4,17 +4,9 @@ ThisBuild / version := "0.1.0-SNAPSHOT"
 
 ThisBuild / scalaVersion := "2.13.8"
 
-libraryDependencies += "org.scala-lang.modules" %% "scala-swing" % "3.0.0"
-libraryDependencies += "com.typesafe.akka" %% "akka-http" % "10.2.7"
-libraryDependencies += "io.spray" %% "spray-json" % "1.3.6"
-libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.6.18"
-libraryDependencies += "com.typesafe.akka" %% "akka-http-spray-json" % "10.2.7"
-libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.6.18"
-libraryDependencies += "com.github.blemale" %% "scaffeine" % "4.1.0"
+assembly / assemblyJarName := "scala-weather.jar"
 
-assemblyJarName in assembly := "scala-weather-1.0.jar"
 scalacOptions := Seq(
-  // Feature options
   "-encoding",
   "utf-8",
   "-explaintypes",
@@ -56,9 +48,23 @@ scalacOptions := Seq(
   "-Wvalue-discard"
 )
 
+assembly / assemblyMergeStrategy := {
+  case PathList("META-INF", xs @ _*) =>
+    xs map {
+      _.toLowerCase
+    } match {
+      case "aop.xml" :: Nil     => MergeStrategy.concat
+      case "manifest.mf" :: Nil => MergeStrategy.discard
+      case _                    => MergeStrategy.concat
+    }
+  case "application.conf" => MergeStrategy.concat
+  case "reference.conf"   => MergeStrategy.concat
+  case x                  => MergeStrategy.first
+}
+
 lazy val root = (project in file("."))
   .settings(
     name := "scala-weather",
-    idePackagePrefix := Some("com.gkleczek"),
-    mainClass in assembly := Some("com.gkleczek.Main")
+    libraryDependencies ++= Dependencies.all,
+    assembly / mainClass := Some("com.gkleczek.Main")
   )

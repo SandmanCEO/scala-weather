@@ -1,5 +1,4 @@
-package com.gkleczek
-package http.models
+package com.gkleczek.http.models
 
 import java.time.{LocalDateTime, LocalTime}
 

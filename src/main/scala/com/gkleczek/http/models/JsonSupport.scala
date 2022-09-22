@@ -1,8 +1,6 @@
-package com.gkleczek
-package http.models
+package com.gkleczek.http.models
 
-import http.models.ApiResponses._
-
+import com.gkleczek.http.models.ApiResponses._
 import spray.json.{
   DefaultJsonProtocol,
   DeserializationException,
