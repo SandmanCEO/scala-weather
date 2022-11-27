@@ -11,7 +11,10 @@ object Dependencies {
     "com.typesafe.akka" %% "akka-slf4j" % Versions.akka,
     "com.typesafe.akka" %% "akka-stream" % Versions.akka,
     "com.github.blemale" %% "scaffeine" % Versions.scaffeine,
-    "ch.qos.logback" % "logback-classic" % Versions.logback
+    "ch.qos.logback" % "logback-classic" % Versions.logback,
+    "org.http4s" %% "http4s-dsl" % "1.0-234-d1a2b53",
+    "org.http4s" %% "http4s-circe" % "1.0-234-d1a2b53",
+    "org.http4s" %% "http4s-blaze-client" % "1.0-234-d1a2b53"
   )
 
   object Versions {

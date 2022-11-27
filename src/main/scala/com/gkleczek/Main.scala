@@ -1,4 +1,8 @@
 package com.gkleczek
+import http.{ImageProvider, WeatherApiAkkaClient}
+import panels._
+import service.WeatherService
+
 import akka.Done
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
@@ -16,7 +20,7 @@ object Main extends App {
   private implicit val logger: LoggingAdapter =
     Logging(system.eventStream, this.getClass)
 
-  private val weatherProvider = new WeatherApiClient(AppConfig.City)
+  private val weatherProvider = new WeatherApiAkkaClient(AppConfig.City)
   private val imageProvider = new ImageProvider
   private val weatherPanel = new WeatherPanel
   private val astronomyPanel = new AstronomyPanel

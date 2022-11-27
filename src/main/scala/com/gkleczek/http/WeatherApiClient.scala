@@ -17,15 +17,20 @@ import com.gkleczek.http.models.ApiResponses.{
 import com.gkleczek.http.models.JsonSupport
 import spray.json.JsValue
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class WeatherApiClient(city: String)(implicit
+trait WeatherApiClient {
+  def getAstronomy: Future[AstronomyResponse]
+  def getWeather: Future[WeatherResponse]
+}
+
+class WeatherApiAkkaClient(city: String)(implicit
     system: ActorSystem,
     mat: Materializer,
     logger: LoggingAdapter
 ) extends SprayJsonSupport
-    with JsonSupport {
+    with AkkaJsonFormatters
+    with WeatherApiClient {
 
   private implicit val ec: ExecutionContext = system.dispatcher
   private val baseUri: Uri = Uri("https://api.weatherapi.com")
@@ -36,27 +41,8 @@ class WeatherApiClient(city: String)(implicit
       "aqi" -> "yes"
     )
   }
-  private val astronomyCache: LoadingCache[Unit, Future[AstronomyResponse]] =
-    Scaffeine()
-      .expireAfterWrite(1.day)
-      .maximumSize(1)
-      .build(_ => fetchAstronomy)
-
-  private val weatherCache: LoadingCache[Unit, Future[WeatherResponse]] =
-    Scaffeine()
-      .expireAfterWrite(AppConfig.WeatherCacheTtl)
-      .maximumSize(1)
-      .build(_ => fetchWeather)
 
   def getAstronomy: Future[AstronomyResponse] = {
-    astronomyCache.get(())
-  }
-
-  def getWeather: Future[WeatherResponse] = {
-    weatherCache.get(())
-  }
-
-  private def fetchAstronomy: Future[AstronomyResponse] = {
     val request = HttpRequest(
       uri = baseUri
         .withPath(baseUri.path / "v1" / "astronomy.json")
@@ -65,7 +51,7 @@ class WeatherApiClient(city: String)(implicit
     executeRequest(request).map(_.convertTo[AstronomyResponse])
   }
 
-  private def fetchWeather: Future[WeatherResponse] = {
+  def getWeather: Future[WeatherResponse] = {
     val request = HttpRequest(
       uri = baseUri
         .withPath(baseUri.path / "v1" / "current.json")

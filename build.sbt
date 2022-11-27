@@ -48,6 +48,9 @@ scalacOptions := Seq(
   "-Wvalue-discard"
 )
 
+resolvers += Resolver.DefaultMavenRepository
+resolvers += Resolver.sonatypeRepo("snapshots")
+
 assembly / assemblyMergeStrategy := {
   case PathList("META-INF", xs @ _*) =>
     xs map {
