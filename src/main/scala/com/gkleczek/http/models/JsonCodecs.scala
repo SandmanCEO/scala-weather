@@ -1,13 +1,24 @@
 package com.gkleczek.http.models
 
+import cats.effect.IO
 import com.gkleczek.http.models.ApiResponses._
+import io.circe.Decoder.Result
+import io.circe.syntax.EncoderOps
+import io.circe.{Codec, HCursor, Json}
+import org.http4s.EntityDecoder
+import org.http4s.circe.jsonOf
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDateTime, LocalTime, ZoneId}
-import scala.io.Codec
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 trait JsonCodecs {
+
+  lazy implicit val astronomyDecoder: EntityDecoder[IO, AstronomyResponse] =
+    jsonOf[IO, AstronomyResponse]
+
+  lazy implicit val weatherDecoder: EntityDecoder[IO, WeatherResponse] =
+    jsonOf[IO, WeatherResponse]
 
   lazy implicit val localDateTimeCodec: Codec[LocalDateTime] =
     new Codec[LocalDateTime] {
@@ -19,17 +30,21 @@ trait JsonCodecs {
       override def apply(a: LocalDateTime): Json = a.toString.asJson
     }
 
-  lazy implicit val eitherLocalTimeFormat: Codec[Either[String, LocalTime]] =
-    new Codec[Either[String, LocalTime]] {
-      override def apply(c: HCursor): Result[Either[String, LocalTime]] = {
+  lazy implicit val eitherLocalTimeFormat: Codec[MaybeLocalTime] =
+    new Codec[MaybeLocalTime] {
+      override def apply(c: HCursor): Result[MaybeLocalTime] = {
         val formatter = DateTimeFormatter.ofPattern("h:m a")
         for {
           localTime <- c.as[String]
-        } yield Try(LocalTime.parse(localTime, formatter)).toEither
-          .fold(_ => localTime, identity)
+        } yield {
+          Try(LocalTime.parse(localTime, formatter)) match {
+            case Failure(_)     => Left(localTime)
+            case Success(value) => Right(value)
+          }
+        }
       }
 
-      override def apply(a: Either[String, LocalTime]): Json = {
+      override def apply(a: MaybeLocalTime): Json = {
         a.fold(_.asJson, _.toString.asJson)
       }
     }

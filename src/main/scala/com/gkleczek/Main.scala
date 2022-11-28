@@ -1,30 +1,22 @@
 package com.gkleczek
-import http.{ImageProvider, WeatherApiAkkaClient}
-import panels._
-import service.WeatherService
-
-import akka.Done
-import akka.actor.ActorSystem
-import akka.event.{Logging, LoggingAdapter}
-import akka.stream.Materializer
-import com.gkleczek.http.{ImageProvider, WeatherApiClient}
+import cats.effect.{ExitCode, IO, IOApp}
+import com.gkleczek.http.{ImageProvider, WeatherApiCache, WeatherApiClient}
 import com.gkleczek.panels._
 import com.gkleczek.service.WeatherService
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import scala.concurrent.{ExecutionContext, Future}
+object Main extends IOApp {
 
-object Main extends App {
-  private implicit val system: ActorSystem = ActorSystem("scala-weather")
-  private implicit val ex: ExecutionContext = system.dispatcher
-  private implicit val mat: Materializer = Materializer(system)
-  private implicit val logger: LoggingAdapter =
-    Logging(system.eventStream, this.getClass)
-
-  private val weatherProvider = new WeatherApiAkkaClient(AppConfig.City)
+  private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+  private val cache: WeatherApiCache = new WeatherApiCache()
+  private val weatherProvider = new WeatherApiClient(AppConfig.City, cache)
   private val imageProvider = new ImageProvider
-  private val weatherPanel = new WeatherPanel
-  private val astronomyPanel = new AstronomyPanel
-  private val airQualityPanel = new AirQualityPanel
+  private val weatherPanel = new WeatherPanel(weatherProvider, imageProvider)
+  private val astronomyPanel =
+    new AstronomyPanel(weatherProvider, imageProvider)
+  private val airQualityPanel =
+    new AirQualityPanel(weatherProvider, imageProvider)
   private val initPanel = new InitPanel
   private val mainFrame = new MainWindow
 
@@ -32,18 +24,19 @@ object Main extends App {
     new WeatherService(
       weatherPanel,
       astronomyPanel,
-      airQualityPanel,
-      weatherProvider,
-      imageProvider
+      airQualityPanel
     )
 
   mainFrame.showPanel(initPanel.panel)
 
-  weatherService
-    .run(mainFrame)
-    .recoverWith { ex =>
-      logger.error(ex, "Fatal error encountered")
-      Future.successful(Done)
-    }
-
+  override def run(args: List[String]): IO[ExitCode] = {
+    weatherService
+      .run(mainFrame)
+      .handleErrorWith { error =>
+        logger
+          .error(error)("Error while running program!")
+          .map(_ => ExitCode.Error)
+      }
+      .as(ExitCode.Success)
+  }
 }

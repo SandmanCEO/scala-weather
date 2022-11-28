@@ -1,13 +1,16 @@
 package com.gkleczek.panels
 
+import cats.effect.IO
 import com.gkleczek.http.models.ApiResponses.WeatherResponse
+import com.gkleczek.http.{ImageProvider, WeatherApiClient}
 
 import java.awt.Color
 import javax.swing.ImageIcon
 import javax.swing.border.EmptyBorder
 import scala.swing.{GridBagPanel, Label}
 
-class WeatherPanel {
+class WeatherPanel(service: WeatherApiClient, imageProvider: ImageProvider)
+    extends Panel {
 
   val panel = new GridBagPanel
 
@@ -30,6 +33,13 @@ class WeatherPanel {
   )
 
   buildPanel()
+
+  override def update(): IO[Unit] = {
+    for {
+      weather <- service.getWeather
+      image <- imageProvider.loadImage(weather.currentWeather.condition.icon)
+    } yield updateValues(weather, image)
+  }
 
   def updateValues(weather: WeatherResponse, imageData: Array[Byte]): Unit = {
     conditionLabel.text =

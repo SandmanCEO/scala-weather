@@ -1,73 +1,67 @@
-package com.gkleczek.http
-
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import akka.http.scaladsl.model.Uri.Query
-import akka.http.scaladsl.model.{HttpRequest, Uri}
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.Materializer
-import com.github.blemale.scaffeine.{LoadingCache, Scaffeine}
-import com.gkleczek.AppConfig
+package com.gkleczek
+package http
+import cats.effect.{ContextShift, IO, Resource}
 import com.gkleczek.http.models.ApiResponses.{
   AstronomyResponse,
   WeatherResponse
 }
-import com.gkleczek.http.models.JsonSupport
-import spray.json.JsValue
+import com.gkleczek.http.models.JsonCodecs
+import org.http4s.Method.GET
+import org.http4s.Uri
+import org.http4s.client.Client
+import org.http4s.client.blaze.BlazeClientBuilder
+import org.http4s.client.dsl.io._
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
-trait WeatherApiClient {
-  def getAstronomy: Future[AstronomyResponse]
-  def getWeather: Future[WeatherResponse]
-}
+class WeatherApiClient(city: String, cache: WeatherApiCache)(implicit
+    cs: ContextShift[IO]
+) extends JsonCodecs {
 
-class WeatherApiAkkaClient(city: String)(implicit
-    system: ActorSystem,
-    mat: Materializer,
-    logger: LoggingAdapter
-) extends SprayJsonSupport
-    with AkkaJsonFormatters
-    with WeatherApiClient {
+  private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
 
-  private implicit val ec: ExecutionContext = system.dispatcher
-  private val baseUri: Uri = Uri("https://api.weatherapi.com")
-  private val baseQueryParams: Query = {
-    Query(
+  private val baseQueryParams: Map[String, String] = {
+    Map(
       "key" -> "e11d0c12dd0b4f7f935183400211807",
       "q" -> city,
       "aqi" -> "yes"
     )
   }
+  private val baseUri: Uri = Uri
+    .unsafeFromString("https://api.weatherapi.com")
+    .withQueryParams(baseQueryParams)
 
-  def getAstronomy: Future[AstronomyResponse] = {
-    val request = HttpRequest(
-      uri = baseUri
-        .withPath(baseUri.path / "v1" / "astronomy.json")
-        .withQuery(baseQueryParams)
-    )
-    executeRequest(request).map(_.convertTo[AstronomyResponse])
-  }
+  private val clientResource: Resource[IO, Client[IO]] =
+    BlazeClientBuilder[IO](ExecutionContext.global).resource
 
-  def getWeather: Future[WeatherResponse] = {
-    val request = HttpRequest(
-      uri = baseUri
-        .withPath(baseUri.path / "v1" / "current.json")
-        .withQuery(baseQueryParams)
-    )
-    executeRequest(request).map(_.convertTo[WeatherResponse])
-  }
+  def getAstronomy: IO[AstronomyResponse] =
+    cache.getAstronomy(() => fetchAstronomy)
 
-  private def executeRequest(request: HttpRequest): Future[JsValue] = {
-    logger.info("Executing api request: {}", request)
-    Http()
-      .singleRequest(request)
-      .flatMap(response => Unmarshal(response.entity).to[JsValue])
-      .recoverWith { ex =>
-        logger.error(ex, "Recovering on exception for http request")
-        executeRequest(request)
+  def getWeather: IO[WeatherResponse] =
+    cache.getWeather(() => fetchWeather)
+
+  def fetchAstronomy: IO[AstronomyResponse] =
+    for {
+      _ <- logger.info("Fetching astronomy")
+      response <- clientResource.use { client =>
+        val request = GET(
+          baseUri / "v1" / "astronomy.json"
+        )
+        client.expect[AstronomyResponse](request)
       }
-  }
+    } yield response
+
+  def fetchWeather: IO[WeatherResponse] =
+    for {
+      _ <- logger.info("Fetching weather")
+      response <- clientResource.use { client =>
+        val request = GET(
+          baseUri / "v1" / "current.json"
+        )
+        client.expect[WeatherResponse](request)
+      }
+    } yield response
+
 }

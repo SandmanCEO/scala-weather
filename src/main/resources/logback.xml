@@ -9,6 +9,10 @@
         </layout>
     </appender>
 
+    <logger name="org.http4s" level="warn" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
     <root level="${LOGLEVEL:-INFO}">
         <appender-ref ref="STDOUT"/>
     </root>

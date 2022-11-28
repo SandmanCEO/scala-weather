@@ -4,6 +4,8 @@ import java.time.{LocalDateTime, LocalTime}
 
 object ApiResponses {
 
+  type MaybeLocalTime = Either[String, LocalTime]
+
   final case class WeatherCondition(condition: String, icon: String)
 
   final case class AirQuality(
@@ -35,10 +37,10 @@ object ApiResponses {
   )
 
   final case class AstronomyData(
-      sunrise: Either[String, LocalTime],
-      sunset: Either[String, LocalTime],
-      moonrise: Either[String, LocalTime],
-      moonSet: Either[String, LocalTime]
+      sunrise: MaybeLocalTime,
+      sunset: MaybeLocalTime,
+      moonrise: MaybeLocalTime,
+      moonSet: MaybeLocalTime
   )
 
   final case class AstronomyResponse(

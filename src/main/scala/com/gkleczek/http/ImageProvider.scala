@@ -1,42 +1,67 @@
 package com.gkleczek.http
 
-import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, Uri}
-import akka.http.scaladsl.unmarshalling.Unmarshal
+import cats.effect.{ContextShift, IO}
+import com.github.benmanes.caffeine.cache.{Cache, Caffeine}
+import org.http4s.Uri
+import org.http4s.client.blaze.BlazeClientBuilder
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+import scalacache.caffeine.CaffeineCache
+import scalacache.memoization.memoizeF
+import scalacache.{CacheConfig, Entry, Mode}
 
 import java.io.ByteArrayOutputStream
+import java.time.Duration
 import javax.imageio.ImageIO
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Try}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.DurationInt
 
 class ImageProvider()(implicit
-    system: ActorSystem,
-    ec: ExecutionContext,
-    logger: LoggingAdapter
+    cs: ContextShift[IO]
 ) {
 
-  def loadImage(imageUri: String): Future[Array[Byte]] = {
-    fetchImage(imageUri)
+  private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
+
+  private val clientResource =
+    BlazeClientBuilder[IO](ExecutionContext.global).resource
+
+  private val underlyingCache: Cache[String, Entry[Array[Byte]]] =
+    Caffeine
+      .newBuilder()
+      .expireAfterWrite(Duration.ofHours(24))
+      .build()
+
+  implicit val mode: Mode[IO] = scalacache.CatsEffect.modes.async
+
+  private implicit val cache: CaffeineCache[Array[Byte]] =
+    CaffeineCache(underlyingCache)(CacheConfig.defaultCacheConfig)
+
+  def loadImage(imageUri: String): IO[Array[Byte]] = {
+    memoizeF[IO, Array[Byte]](Some(1.day)) {
+      fetchImage(imageUri)
+    }
   }
 
-  private def fetchImage(imageUri: String): Future[Array[Byte]] = {
-    val request = HttpRequest(uri = Uri(imageUri))
-    logger.info("Fetching image {}", imageUri)
-    Http()
-      .singleRequest(request)
-      .flatMap(response => Unmarshal(response.entity).to[Array[Byte]])
-  }
+  private def fetchImage(imageUri: String): IO[Array[Byte]] =
+    for {
+      _ <- logger.info(s"Fetching image $imageUri")
+      image <- clientResource.use { client =>
+        val uri = Uri.unsafeFromString(imageUri)
+        client.expect[Array[Byte]](uri)
+      }
+    } yield image
 
-  def loadImageFromIndex(index: Int): Array[Byte] = Try {
-    val url = getClass.getResource(s"/img_$index.png")
-    val bufferedImage = ImageIO.read(url)
-    val output = new ByteArrayOutputStream()
-    ImageIO.write(bufferedImage, "png", output)
-    output.toByteArray
-  }.recoverWith { ex =>
-    logger.error(ex, "Exception while loading image from resources")
-    Failure(ex)
-  }.get
+  def loadImageFromIndex(index: Int): IO[Array[Byte]] = {
+    IO.pure {
+      val url = getClass.getResource(s"/img_$index.png")
+      val bufferedImage = ImageIO.read(url)
+      val output = new ByteArrayOutputStream()
+      ImageIO.write(bufferedImage, "png", output)
+      output.toByteArray
+    }.handleErrorWith { ex =>
+      logger
+        .error(ex)("Exception while loading image from resources")
+        .flatMap(_ => IO.raiseError(ex))
+    }
+  }
 }
