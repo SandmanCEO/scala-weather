@@ -9,7 +9,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 object Main extends IOApp {
 
   private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
-  private val cache: WeatherApiCache = new WeatherApiCache()
+  private val cache = new WeatherApiCache()
   private val weatherProvider = new WeatherApiClient(AppConfig.City, cache)
   private val imageProvider = new ImageProvider
   private val weatherPanel = new WeatherPanel(weatherProvider, imageProvider)

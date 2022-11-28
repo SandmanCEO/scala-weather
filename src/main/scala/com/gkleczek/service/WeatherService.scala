@@ -31,8 +31,8 @@ class WeatherService(
           for {
             _ <- panel.update()
             _ <- IO(mainWindow.showPanel(panel.panel))
-            _ <- IO.sleep(10.seconds)
-          } yield IO.pure(())
+            done <- IO.sleep(10.seconds)
+          } yield done
         }
         .compile
         .drain
