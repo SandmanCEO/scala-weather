@@ -1,6 +1,8 @@
 package com.gkleczek.service
 
+import cats.data.EitherT
 import cats.effect.{IO, Timer}
+import com.gkleczek.http.models.AppErrors.AppError
 import com.gkleczek.panels.{
   AirQualityPanel,
   AstronomyPanel,
@@ -21,7 +23,7 @@ class WeatherService(
 
   private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
 
-  def run(mainWindow: MainWindow): IO[Unit] =
+  def run(mainWindow: MainWindow): IO[Either[AppError, Unit]] =
     for {
       _ <- logger.info("Starting main stream")
       result <- Stream
@@ -30,11 +32,12 @@ class WeatherService(
         .evalMap { panel =>
           for {
             _ <- panel.update()
-            _ <- IO(mainWindow.showPanel(panel.panel))
-            done <- IO.sleep(10.seconds)
+            _ <- mainWindow.showPanel(panel.panel)
+            done <- EitherT.right[AppError](IO.sleep(10.seconds))
           } yield done
         }
         .compile
         .drain
+        .value
     } yield result
 }

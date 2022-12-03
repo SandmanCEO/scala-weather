@@ -1,5 +1,9 @@
 package com.gkleczek.panels
 
+import cats.data.EitherT
+import cats.effect.IO
+import com.gkleczek.http.models.AppErrors.AppError
+
 import java.awt.Dimension
 import scala.swing.{Frame, Panel}
 
@@ -15,8 +19,16 @@ class MainWindow {
     open()
   }
 
-  def showPanel(panel: Panel): Unit = {
-    frame.contents = panel
-    frame.size = defaultFrameSize
+  def showPanel(panel: Panel): EitherT[IO, AppError, Unit] = {
+    EitherT.right {
+      IO {
+        frame.contents = panel
+        frame.size = defaultFrameSize
+      }
+    }
+  }
+
+  def close: IO[Unit] = {
+    IO(frame.close())
   }
 }

@@ -1,7 +1,9 @@
 package com.gkleczek.panels
 
+import cats.data.EitherT
 import cats.effect.IO
 import com.gkleczek.http.models.ApiResponses.AstronomyResponse
+import com.gkleczek.http.models.AppErrors.AppError
 import com.gkleczek.http.{ImageProvider, WeatherApiClient}
 
 import java.awt.Color
@@ -32,7 +34,7 @@ class AstronomyPanel(service: WeatherApiClient, imageProvider: ImageProvider)
 
   buildPanel()
 
-  override def update(): IO[Unit] =
+  override def update(): EitherT[IO, AppError, Unit] =
     for {
       astronomy <- service.getAstronomy
       sunIcon <- imageProvider.loadImage(
