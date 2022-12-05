@@ -43,14 +43,14 @@ class ImageProvider()(implicit
 
   def loadImageFromIndex(index: Int): EitherT[IO, AppError, Array[Byte]] = {
     val result: IO[Either[AppError, Array[Byte]]] = IO {
-      val url = getClass.getResource(s"/img_$index.png")
+      val url           = getClass.getResource(s"/img_$index.png")
       val bufferedImage = ImageIO.read(url)
-      val output = new ByteArrayOutputStream()
+      val output        = new ByteArrayOutputStream()
       ImageIO.write(bufferedImage, "png", output)
       Right(output.toByteArray)
     }.handleErrorWith { ex =>
       for {
-        _ <- logger.error(ex)("Exception while loading image from resources")
+        _    <- logger.error(ex)("Exception while loading image from resources")
         error = ImageLoadingError(ex.getMessage)
       } yield Left(error)
     }
@@ -60,10 +60,10 @@ class ImageProvider()(implicit
 
   private def fetchImage(imageUri: String): IO[Array[Byte]] =
     for {
-      _ <- logger.info(s"Fetching image $imageUri")
+      _     <- logger.info(s"Fetching image $imageUri")
       image <- clientResource.use { client =>
-        val uri = Uri.unsafeFromString(imageUri)
-        client.expect[Array[Byte]](uri)
-      }
+                 val uri = Uri.unsafeFromString(imageUri)
+                 client.expect[Array[Byte]](uri)
+               }
     } yield image
 }

@@ -16,13 +16,13 @@ class AirQualityPanel(service: WeatherApiClient, imageProvider: ImageProvider)
 
   val panel = new GridBagPanel
 
-  private val carbonOxideLabel = new Label()
+  private val carbonOxideLabel    = new Label()
   private val nitrousDioxideLabel = new Label()
-  private val ozoneLabel = new Label()
+  private val ozoneLabel          = new Label()
   private val sulphurDioxideLabel = new Label()
-  private val pm25Label = new Label()
-  private val pm10Label = new Label()
-  private val indexIcon = new Label()
+  private val pm25Label           = new Label()
+  private val pm10Label           = new Label()
+  private val indexIcon           = new Label()
 
   private val allLabels: Set[Label] = Set(
     carbonOxideLabel,
@@ -38,10 +38,10 @@ class AirQualityPanel(service: WeatherApiClient, imageProvider: ImageProvider)
 
   override def update(): EitherT[IO, AppError, Unit] =
     for {
-      weather <- service.getWeather
+      weather    <- service.getWeather
       indexImage <- imageProvider.loadImageFromIndex(
-        weather.currentWeather.airQuality.index
-      )
+                      weather.currentWeather.airQuality.index
+                    )
     } yield updateValues(weather, indexImage)
 
   def updateValues(

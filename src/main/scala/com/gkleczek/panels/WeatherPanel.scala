@@ -16,13 +16,13 @@ class WeatherPanel(service: WeatherApiClient, imageProvider: ImageProvider)
 
   val panel = new GridBagPanel
 
-  private val conditionLabel = new Label()
-  private val temperatureLabel = new Label()
+  private val conditionLabel            = new Label()
+  private val temperatureLabel          = new Label()
   private val feelsLikeTemperatureLabel = new Label()
-  private val humidityLabel = new Label()
-  private val windLabel = new Label()
-  private val pressureLabel = new Label()
-  private val weatherIcon = new Label()
+  private val humidityLabel             = new Label()
+  private val windLabel                 = new Label()
+  private val pressureLabel             = new Label()
+  private val weatherIcon               = new Label()
 
   private val allLabels: Set[Label] = Set(
     conditionLabel,
@@ -39,7 +39,7 @@ class WeatherPanel(service: WeatherApiClient, imageProvider: ImageProvider)
   override def update(): EitherT[IO, AppError, Unit] = {
     for {
       weather <- service.getWeather
-      image <- imageProvider.loadImage(weather.currentWeather.condition.icon)
+      image   <- imageProvider.loadImage(weather.currentWeather.condition.icon)
     } yield updateValues(weather, image)
   }
 

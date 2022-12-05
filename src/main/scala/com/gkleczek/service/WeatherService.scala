@@ -16,6 +16,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import scala.concurrent.duration._
 
 class WeatherService(
+    frame: MainWindow,
     weatherPanel: WeatherPanel,
     astronomyPanel: AstronomyPanel,
     airQualityPanel: AirQualityPanel
@@ -23,21 +24,25 @@ class WeatherService(
 
   private val logger: SelfAwareStructuredLogger[IO] = Slf4jLogger.getLogger[IO]
 
-  def run(mainWindow: MainWindow): IO[Either[AppError, Unit]] =
+  def run: IO[Either[AppError, Unit]] =
     for {
-      _ <- logger.info("Starting main stream")
-      result <- Stream
-        .emits(weatherPanel :: astronomyPanel :: airQualityPanel :: Nil)
-        .repeat
-        .evalMap { panel =>
-          for {
-            _ <- panel.update()
-            _ <- mainWindow.showPanel(panel.panel)
-            done <- EitherT.right[AppError](IO.sleep(10.seconds))
-          } yield done
-        }
-        .compile
-        .drain
-        .value
+      _      <- logger.info("Starting main stream")
+      result <-
+        Stream
+          .emits(weatherPanel :: astronomyPanel :: airQualityPanel :: Nil)
+          .repeat
+          .evalMap { panel =>
+            for {
+              _    <- panel.update()
+              _    <- frame.showPanel(panel.panel)
+              done <- EitherT.right[AppError](IO.sleep(10.seconds))
+            } yield done
+          }
+          .compile
+          .drain
+          .value
     } yield result
+
+  def close: IO[Unit] =
+    frame.close
 }

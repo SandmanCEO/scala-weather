@@ -22,9 +22,9 @@ import scalacache.caffeine.CaffeineCache
 import scalacache.{CacheConfig, Entry, Mode, cachingF}
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.FiniteDuration
 
-class WeatherApiClient(city: String)(implicit
+class WeatherApiClient(city: String, cacheTTL: FiniteDuration)(implicit
     cs: ContextShift[IO]
 ) extends JsonCodecs {
 
@@ -43,7 +43,7 @@ class WeatherApiClient(city: String)(implicit
   private val baseQueryParams: Map[String, String] = {
     Map(
       "key" -> "e11d0c12dd0b4f7f935183400211807",
-      "q" -> city,
+      "q"   -> city,
       "aqi" -> "yes"
     )
   }
@@ -57,37 +57,37 @@ class WeatherApiClient(city: String)(implicit
   def getAstronomy: EitherT[IO, AppError, AstronomyResponse] =
     for {
       astronomyJson <- getFromCache("astronomy", () => fetchAstronomy)
-      astronomy <- parse[AstronomyResponse](astronomyJson)
+      astronomy     <- parse[AstronomyResponse](astronomyJson)
     } yield astronomy
 
   def getWeather: EitherT[IO, AppError, WeatherResponse] =
     for {
       weatherJson <- getFromCache("weather", () => fetchWeather)
-      weather <- parse[WeatherResponse](weatherJson)
+      weather     <- parse[WeatherResponse](weatherJson)
     } yield weather
 
   def fetchAstronomy: EitherT[IO, AppError, Json] = {
     val result = for {
-      _ <- logger.info("Fetching astronomy")
+      _        <- logger.info("Fetching astronomy")
       response <- clientResource.use { client =>
-        val request = GET(
-          baseUri / "v1" / "astronomy.json"
-        )
-        client.expect[Json](request)
-      }
+                    val request = GET(
+                      baseUri / "v1" / "astronomy.json"
+                    )
+                    client.expect[Json](request)
+                  }
     } yield response
     EitherT.right(result)
   }
 
   def fetchWeather: EitherT[IO, AppError, Json] = {
     val result = for {
-      _ <- logger.info("Fetching weather")
+      _        <- logger.info("Fetching weather")
       response <- clientResource.use { client =>
-        val request = GET(
-          baseUri / "v1" / "current.json"
-        )
-        client.expect[Json](request)
-      }
+                    val request = GET(
+                      baseUri / "v1" / "current.json"
+                    )
+                    client.expect[Json](request)
+                  }
     } yield response
     EitherT.right(result)
   }
@@ -96,7 +96,7 @@ class WeatherApiClient(city: String)(implicit
       key: String,
       fun: () => EitherT[IO, AppError, Json]
   ): EitherT[IO, AppError, Json] = {
-    val result = cachingF(key)(Some(10.minutes)) {
+    val result = cachingF(key)(Some(cacheTTL)) {
       fun().value
     }
     EitherT(result)

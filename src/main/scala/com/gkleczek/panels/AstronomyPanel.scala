@@ -16,12 +16,12 @@ class AstronomyPanel(service: WeatherApiClient, imageProvider: ImageProvider)
 
   val panel = new GridBagPanel
 
-  private val sunriseLabel = new Label()
-  private val sunsetLabel = new Label()
+  private val sunriseLabel  = new Label()
+  private val sunsetLabel   = new Label()
   private val moonriseLabel = new Label()
-  private val moonSetLabel = new Label()
-  private val sunIcon = new Label()
-  private val moonIcon = new Label()
+  private val moonSetLabel  = new Label()
+  private val sunIcon       = new Label()
+  private val moonIcon      = new Label()
 
   private val allLabels: Set[Label] = Set(
     sunriseLabel,
@@ -37,12 +37,12 @@ class AstronomyPanel(service: WeatherApiClient, imageProvider: ImageProvider)
   override def update(): EitherT[IO, AppError, Unit] =
     for {
       astronomy <- service.getAstronomy
-      sunIcon <- imageProvider.loadImage(
-        "http://cdn.weatherapi.com/weather/64x64/day/113.png"
-      )
-      moonIcon <- imageProvider.loadImage(
-        "http://cdn.weatherapi.com/weather/64x64/night/113.png"
-      )
+      sunIcon   <- imageProvider.loadImage(
+                     "http://cdn.weatherapi.com/weather/64x64/day/113.png"
+                   )
+      moonIcon  <- imageProvider.loadImage(
+                     "http://cdn.weatherapi.com/weather/64x64/night/113.png"
+                   )
     } yield updateValues(astronomy, sunIcon, moonIcon)
 
   def updateValues(
@@ -50,13 +50,13 @@ class AstronomyPanel(service: WeatherApiClient, imageProvider: ImageProvider)
       sunIconData: Array[Byte],
       moonIconData: Array[Byte]
   ): Unit = {
-    val sunriseHour: String =
+    val sunriseHour: String  =
       astronomy.astronomy.sunrise.fold(s => s, d => d.toString)
-    val sunsetHour: String =
+    val sunsetHour: String   =
       astronomy.astronomy.sunset.fold(s => s, d => d.toString)
     val moonriseHour: String =
       astronomy.astronomy.moonrise.fold(s => s, d => d.toString)
-    val moonSetHour: String =
+    val moonSetHour: String  =
       astronomy.astronomy.moonSet.fold(s => s, d => d.toString)
     sunriseLabel.text = s"Sunrise: $sunriseHour"
     sunsetLabel.text = s"Sunset: $sunsetHour"
